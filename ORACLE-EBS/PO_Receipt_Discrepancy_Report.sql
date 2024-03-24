@@ -1,0 +1,49 @@
+SELECT DISTINCT
+    pha.org_id,
+    hou.NAME,
+    PHA.PO_HEADER_ID,
+    PHA.SEGMENT1                   AS "PO NUMBER",
+    pha.AUTHORIZATION_STATUS,
+    pha.creation_date,
+    pha.APPROVED_DATE,
+    pha.CLOSED_DATE,
+    PHA.CLOSED_CODE,
+    APS.VENDOR_NAME                AS "SUPPLIER",
+    MSIK.concatenated_segments     AS "ITEM CODE",
+    MSIK.DESCRIPTION,
+    PLA.QUANTITY                   AS "QUANTITY",
+    pha.currency_code,
+    PLA.UNIT_PRICE,
+    RT.TRANSACTION_TYPE, 
+    RT.TRANSACTION_DATE, 
+    RT.PRIMARY_QUANTITY, 
+    RT.ATTRIBUTE15                 AS "MRR NO",
+    (nvl(PLA.QUANTITY,0) - nvl(RT.PRIMARY_QUANTITY,0)) po_rcv_difference
+FROM
+    PO_HEADERS_ALL      PHA
+JOIN
+    PO_LINES_ALL        PLA 
+    ON PHA.PO_HEADER_ID = PLA.PO_HEADER_ID
+JOIN
+    MTL_SYSTEM_ITEMS_KFV MSIK 
+    ON PLA.ITEM_ID = MSIK.INVENTORY_ITEM_ID
+JOIN
+    HR_OPERATING_UNITS  HOU 
+    ON pha.org_id = HOU.ORGANIZATION_ID 
+    AND pLa.org_id = HOU.ORGANIZATION_ID
+JOIN
+    AP_SUPPLIERS   APS 
+    ON PHA.VENDOR_ID = APS.VENDOR_ID
+LEFT JOIN
+    RCV_TRANSACTIONS  RT 
+    ON PHA.PO_HEADER_ID = RT.PO_HEADER_ID 
+    AND PLA.PO_LINE_ID = RT.PO_LINE_ID 
+    AND RT.TRANSACTION_TYPE = 'DELIVER'
+WHERE 
+    pha.creation_date > COALESCE(:PO_CREATE_DATE,'31-MAY-23') -- DEFAULT'31-MAY-23'
+    AND PHA.ATTRIBUTE1 LIKE 'I%'
+    AND (pha.org_id = :ORGANIZATION_ID OR :ORGANIZATION_ID IS NULL)
+    AND (PHA.SEGMENT1  = :PO_NUMBER OR :PO_NUMBER IS NULL)
+    AND RT.TRANSACTION_TYPE IS NULL -- No receipt transaction exists
+ORDER BY
+    MSIK.concatenated_segments,   PHA.ORG_ID, PHA.SEGMENT1, pha.creation_date;
