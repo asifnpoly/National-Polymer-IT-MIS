@@ -1,0 +1,54 @@
+---First Step(Data Verify)
+SELECT * FROM XX_CUSTTERRSRZMDM_V 
+WHERE zm_number='4458'
+AND DIVISION='Division-8 (Door)'
+AND ZONE like 'Gazipur'
+and PRODUCT_CODE in (143)
+AND END_DATE_ACTIVE is null
+AND ORG_ID=102;
+/
+----2nd Step(Data Export)
+select * FROM XX_CUSTTERRSRZMDM c
+where COMBINATION_ID in (
+SELECT COMBINATION_ID FROM XX_CUSTTERRSRZMDM_V 
+WHERE zm_number='2648'
+AND DIVISION='Division-8 (Door)'
+AND ZONE like 'Gazipur'
+and PRODUCT_CODE in (143)
+AND END_DATE_ACTIVE is null
+AND ORG_ID=102
+and COMBINATION_ID=c.COMBINATION_ID
+);
+------3rd Step (Data Inactive)
+DECLARE
+CURSOR C1 IS 
+SELECT * FROM XX_CUSTTERRSRZMDM_V 
+WHERE zm_number='2648'
+AND DIVISION='Division-8 (Door)'
+AND ZONE like 'Gazipur'
+and PRODUCT_CODE in (143)
+AND END_DATE_ACTIVE is null
+AND ORG_ID=102;
+BEGIN
+FOR I IN C1 LOOP
+UPDATE  XX_CUSTTERRSRZMDM
+SET END_DATE_ACTIVE = '30-APR-2024',
+TRACK_ZM_ID=i.zm_number,
+UPD_DATE=trunc(SYSDATE)
+WHERE COMBINATION_ID=I.COMBINATION_ID
+AND ZM_NUMBER=I.ZM_NUMBER
+AND PRODUCT_NAME=i.PRODUCT_NAME
+AND END_DATE_ACTIVE IS NULL
+AND ORG_ID='102';
+END LOOP;
+--commit;
+END;
+-------4th Step (Combination ID Update)
+select MAX (COMBINATION_ID) FROM  XX_CUSTTERRSRZMDM;
+
+----5th Step (Sales Person Verify)
+
+XX_SALESREP_NAME_V
+
+----6th Step (Start Date Change)
+----XL file(Data import) Upload.
